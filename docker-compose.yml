@@ -1,0 +1,77 @@
+services:
+  # ==================== INFRAESTRUTURA (Kafka Confluent KRaft) ====================
+  kafka:
+    image: confluentinc/cp-kafka:7.6.0
+    container_name: kafka
+    ports:
+      - "9092:9092"
+    environment:
+      #A imagem do kafka / confluentinc exige "CLUSTER_ID"
+      CLUSTER_ID: MkU3OEVBNTcwNTJENDM2Qk
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092,CONTROLLER://0.0.0.0:9093
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+    networks:
+      - integration-net
+    healthcheck:
+      test: ["CMD", "kafka-topics", "--bootstrap-server", "localhost:9092", "--list"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+
+  # ==================== APLICAÇÕES ====================
+  modern-api:
+    build: ./modern-api
+    container_name: modern-api
+    ports:
+      - "9005:9005"  # Mapeando para a porta 9005 interna que você configurou
+    environment:
+      - SIMULATE_FAILURE=false
+      - FAILURE_RATE=0.5
+    healthcheck:
+      # Healthcheck batendo na porta 9005
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:9005/health')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - integration-net
+
+  camel-middleware:
+    build: ./camel-middleware
+    container_name: camel-middleware
+    ports:
+      - "8080:8080"
+    environment:
+      - JWT_SECRET=minha-chave-secreta-super-complexa-para-o-portfolio
+    depends_on:
+      kafka:
+        condition: service_healthy
+      modern-api:
+        condition: service_healthy
+    networks:
+      - integration-net
+
+  legacy-simulator:
+    build: ./legacy-simulator
+    container_name: legacy-simulator
+    env_file:
+      - .env  
+    depends_on:
+      - camel-middleware
+    networks:
+      - integration-net
+
+networks:
+  integration-net:
+    driver: bridge
