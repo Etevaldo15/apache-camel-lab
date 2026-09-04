@@ -75,7 +75,7 @@ flowchart LR
 
     subgraph Modern["🚀 API Moderna"]
         MA[Modern API<br/>FastAPI + Pydantic]
-        IDEM[Idempotência<br/>por CPF]
+        IDEM[Idempotência<br/>por BI]
         DB[(In-Memory DB)]
 
         MA --> IDEM --> DB
