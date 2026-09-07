@@ -1,4 +1,4 @@
-# 🏥 Apache Camel Integration
+# Apache Camel Integration
 
 > Uma arquitetura de integração enterprise **production-ready** demonstrando interoperabilidade entre sistemas legados e modernos, com segurança JWT (RSA), resiliência via Dead Letter Queue no Kafka, e orquestração completa via Docker Compose.
 
